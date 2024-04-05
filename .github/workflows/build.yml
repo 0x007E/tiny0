@@ -1,0 +1,68 @@
+name: build-firmware
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  TOOLCHAIN: "3.7.0.1796"
+  DFP: "ATtiny_DFP.2.0.368"
+  DEVICE: "attiny1606"
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install zip
+      run: sudo apt-get install -y zip
+    - name: install-build-tools
+      run: |
+          wget https://ww1.microchip.com/downloads/aemDocuments/documents/DEV/ProductDocuments/SoftwareTools/avr8-gnu-toolchain-${{ env.TOOLCHAIN }}-linux.any.x86_64.tar.gz
+          tar -xf *.tar.gz
+    - name: install-dfp-package
+      run: |
+          wget http://packs.download.atmel.com/Atmel.${{ env.DFP }}.atpack
+          unzip *.atpack -d ./DFP
+    - name: build-tiny0-firmware
+      run: |
+          mkdir build
+          ./avr8-gnu-toolchain-linux_x86_64/bin/avr-gcc -g -x c -O1 -mmcu=${{ env.DEVICE }} -std=gnu99 -B ./DFP/gcc/dev/${{ env.DEVICE }} -I ./DFP/include -c ./library/system/system.c -o ./system.o
+        
+          for dir in ./library/*/
+          do
+              name=${dir%*/}
+              echo "Building ${name##*/}"
+
+              cp ./system.o ./library/${name##*/}/system.o
+
+              ./avr8-gnu-toolchain-linux_x86_64/bin/avr-gcc -g -x c -O1 -mmcu=${{ env.DEVICE }} -std=gnu99 -B ./DFP/gcc/dev/${{ env.DEVICE }} -I ./DFP/include -c ./library/${name##*/}/main.c -o ./library/${name##*/}/main.o
+              ./avr8-gnu-toolchain-linux_x86_64/bin/avr-gcc -g -x c -O1 -mmcu=${{ env.DEVICE }} -std=gnu99 -B ./DFP/gcc/dev/${{ env.DEVICE }} -I ./DFP/include -c ./library/${name##*/}/${name##*/}.c -o ./library/${name##*/}/${name##*/}.o
+
+              if [ ${name##*/} = "system" ]; then
+                ./avr8-gnu-toolchain-linux_x86_64/bin/avr-gcc -g -mmcu=${{ env.DEVICE }} -B ./DFP/gcc/dev/${{ env.DEVICE }} -I ./DFP/include -o ./library/${name##*/}/${name##*/}.elf ./library/${name##*/}/main.o ./library/${name##*/}/${name##*/}.o
+              else
+                ./avr8-gnu-toolchain-linux_x86_64/bin/avr-gcc -g -mmcu=${{ env.DEVICE }} -B ./DFP/gcc/dev/${{ env.DEVICE }} -I ./DFP/include -o ./library/${name##*/}/${name##*/}.elf ./library/${name##*/}/main.o ./library/${name##*/}/${name##*/}.o ./library/${name##*/}/system.o
+              fi
+
+              ./avr8-gnu-toolchain-linux_x86_64/bin/avr-objcopy -j .text -j .data -O ihex ./library/${name##*/}/${name##*/}.elf ./build/${name##*/}_demo.hex
+              ./avr8-gnu-toolchain-linux_x86_64/bin/avr-objcopy -j .eeprom --change-section-lma .eeprom=0 -O ihex ./library/${name##*/}/${name##*/}.elf ./build/${name##*/}_demo.eep
+
+          done
+
+          tar -czvf build.tar.gz ./build
+          zip -r build.zip ./build
+
+    - name: upload-tiny0-firmware
+      uses: actions/upload-artifact@v4
+      with:
+        name: attiny1606-demo
+        path: |
+          ./build
+          build.tar.gz
+          build.zip
+        retention-days: 5
