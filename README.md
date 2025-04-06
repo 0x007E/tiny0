@@ -14,11 +14,11 @@ For Programming the device with `serialupdi` a `USB/UART` bridge is necessary an
 
 [USB/UART Bridge from RS-Components](https://at.rs-online.com/web/p/entwicklungstools-kommunikation-und-drahtlos/7916390?gb=s)
 
-![UPDI Adapter bottom](./images/UPDI.png)
+![UPDI Schematic](https://github.com/0x007E/updi/blob/main/images/updi-ft232-schema.png?raw=true)
 
 | Top       | Bottom  |
 |:---------:|:-------:|
-|![UPDI Adapter top](./images/UPDI-Adapter_Top.jpg) | ![UPDI Adapter bottom](./images/UPDI-Adapter_Bottom.jpg) |
+|![UPDI Adapter top](https://github.com/0x007E/updi/blob/main/images/adapter_top.jpg?raw=true) | ![UPDI Adapter bottom](https://github.com/0x007E/updi/blob/main/images/adapter_bottom.jpg?raw=true) |
 
 ## UPDI programming (over USB/UART) with Microchip Studio
 
